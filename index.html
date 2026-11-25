@@ -9,15 +9,24 @@
 <link rel="icon" href="logo.jpg">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="estilos.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kaushan+Script&family=Montserrat:wght@900&display=swap">
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800">
 <div id="toast" class="hidden"></div>
 
 <main class="max-w-md mx-auto p-4 pb-16">
-  <header class="text-center py-4">
-    <img src="logo.jpg" alt="" class="h-14 mx-auto mb-2" onerror="this.style.display='none'">
-    <h1 class="text-2xl font-extrabold text-blue-700" id="titulo">Club Triskel</h1>
-    <p class="text-sm text-slate-500">Sumá puntos con tus compras y canjealos por premios</p>
+  <header class="py-2">
+    <img src="banner.jpg" alt="Club de Beneficios - Triskel Librería" class="w-full h-auto rounded-2xl shadow" onerror="this.style.display='none';document.getElementById('bannerAlt').classList.remove('hidden')">
+    <div id="bannerAlt" class="hidden rounded-2xl shadow flex items-center gap-4 p-4" style="background:#1c1c1c">
+      <img src="logo.jpg" alt="" class="w-20 h-20 rounded-full shrink-0">
+      <div>
+        <p class="text-white leading-none"><span style="font-family:'Kaushan Script',cursive;font-size:2rem">Club</span> <span class="text-lg">de</span></p>
+        <p class="font-black text-slate-200 text-3xl leading-tight" style="font-family:Montserrat,system-ui,sans-serif">BENEFICIOS!</p>
+        <div class="flex gap-1 my-1"><span class="h-1 w-8 rounded bg-blue-500"></span><span class="h-1 w-8 rounded bg-orange-500"></span><span class="h-1 w-8 rounded bg-green-500"></span></div>
+        <p class="text-slate-300 text-xs">Sumá puntos con cada compra en <b class="text-white">Triskel Librería</b></p>
+      </div>
+    </div>
+    <h1 class="sr-only" id="titulo">Club Triskel</h1>
   </header>
 
   <div id="vConfig" class="hidden tarjeta text-center text-sm">
@@ -189,8 +198,9 @@ let premios = [], puntosActuales = 0;
 function pintarPremios() {
   $('mPremios').innerHTML = premios.length ? premios.map(p => {
     const falta = p.puntos - puntosActuales;
-    return `<li class="flex justify-between items-center gap-2 bg-slate-50 rounded-xl px-3 py-2"><span class="font-semibold">${esc(p.nombre)}</span>` +
-      `<span class="text-right text-xs ${falta <= 0 ? 'text-emerald-600 font-bold' : 'text-slate-500'}">${fmt(p.puntos)} pts<br>${falta <= 0 ? '¡Ya lo podés canjear!' : 'Te faltan ' + fmt(falta)}</span></li>`;
+    const img = (p.imagen && String(p.imagen).startsWith('data:image/')) ? `<img src="${p.imagen}" alt="" class="w-14 h-14 rounded-lg object-cover shrink-0">` : '';
+    return `<li class="flex items-center gap-3 bg-slate-50 rounded-xl px-3 py-2">${img}<span class="font-semibold flex-1">${esc(p.nombre)}</span>` +
+      `<span class="text-right text-xs shrink-0 ${falta <= 0 ? 'text-emerald-600 font-bold' : 'text-slate-500'}">${fmt(p.puntos)} pts<br>${falta <= 0 ? '¡Ya lo podés canjear!' : 'Te faltan ' + fmt(falta)}</span></li>`;
   }).join('') : '<li class="text-slate-500">Pronto vas a ver los premios acá.</li>';
 }
 
