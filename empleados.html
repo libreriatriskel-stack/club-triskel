@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mostrador - Club Triskel</title>
+<meta name="robots" content="noindex">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="estilos.css">
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+<div id="toast" class="hidden"></div>
+
+<main class="max-w-2xl mx-auto p-4 pb-16">
+  <header class="flex items-center justify-between py-3">
+    <h1 class="text-xl font-extrabold text-blue-700">Mostrador · <span id="titulo"></span></h1>
+    <button id="salir" class="hidden btn btn-gris text-sm !py-1.5">Salir</button>
+  </header>
+
+  <div id="vConfig" class="hidden tarjeta text-sm">Abrí <b>config.js</b> y pegá los datos de Firebase.</div>
+  <div id="vCarga" class="text-center text-slate-500 py-10">Cargando…</div>
+
+  <!-- LOGIN -->
+  <section id="vAuth" class="hidden tarjeta">
+    <form id="fIng" class="space-y-3">
+      <div><label class="etiqueta">Mail de empleado</label><input id="iEmail" type="email" class="campo" required></div>
+      <div><label class="etiqueta">Contraseña</label><input id="iPass" type="password" class="campo" required></div>
+      <button class="btn btn-azul w-full">Ingresar</button>
+      <button type="button" id="verCrear" class="w-full text-sm text-blue-700 underline">Es mi primera vez: crear mi acceso</button>
+    </form>
+    <form id="fCrear" class="hidden space-y-3">
+      <p class="text-sm text-slate-600">Creá tu acceso. Después el dueño te tiene que habilitar.</p>
+      <div><label class="etiqueta">Mail</label><input id="cEmail" type="email" class="campo" required></div>
+      <div><label class="etiqueta">Contraseña (mín. 6)</label><input id="cPass" type="password" minlength="6" class="campo" required></div>
+      <button class="btn btn-verde w-full">Crear acceso</button>
+      <button type="button" id="volver" class="w-full text-sm text-blue-700 underline">Volver</button>
+    </form>
+  </section>
+
+  <!-- SIN PERMISO -->
+  <section id="vSinPermiso" class="hidden tarjeta space-y-3">
+    <p class="font-bold">Todavía no estás habilitado</p>
+    <p class="text-sm">Pasale este código al dueño para que te dé acceso:</p>
+    <input id="miUid" readonly class="campo font-mono text-xs" onclick="this.select()">
+    <div id="cajaDueno" class="hidden border-t pt-3 space-y-2">
+      <p class="text-sm font-semibold">¿Sos el dueño y es la primera vez?</p>
+      <p class="text-xs text-slate-500">Esto se puede hacer una sola vez: quedás como dueño y después vos habilitás al resto.</p>
+      <button id="soyDueno" class="btn btn-azul w-full">Configurar como dueño</button>
+    </div>
+  </section>
+
+  <!-- MOSTRADOR -->
+  <section id="vMain" class="hidden space-y-4">
+    <div class="tarjeta space-y-3">
+      <label class="etiqueta">Escaneá la tarjeta (o escribí el número) y apretá Enter</label>
+      <div class="flex gap-2">
+        <input id="scan" class="campo text-xl font-mono" inputmode="numeric" autocomplete="off" placeholder="Número de tarjeta">
+        <button id="buscar" class="btn btn-azul">Buscar</button>
+      </div>
+    </div>
+
+    <div id="ficha" class="hidden tarjeta space-y-4">
+      <div class="flex justify-between items-start">
+        <div>
+          <p class="text-xl font-extrabold" id="fNombre"></p>
+          <p class="text-xs text-slate-500" id="fMail"></p>
+          <p class="text-xs text-slate-500 font-mono" id="fNum"></p>
+        </div>
+        <div class="text-right"><p class="text-xs text-slate-500">Puntos</p><p class="text-4xl font-extrabold text-blue-700" id="fPuntos">0</p></div>
+      </div>
+
+      <div class="bg-emerald-50 rounded-2xl p-3 space-y-2">
+        <label class="etiqueta">Monto de la compra ($)</label>
+        <div class="flex gap-2">
+          <input id="monto" class="campo text-xl" inputmode="decimal" placeholder="Ej: 25.000" autocomplete="off">
+          <button id="sumar" class="btn btn-verde">Sumar</button>
+        </div>
+        <p class="text-sm text-emerald-800" id="previa"></p>
+      </div>
+
+      <div>
+        <p class="etiqueta">Canjear premio</p>
+        <ul id="fPremios" class="space-y-2"></ul>
+      </div>
+
+      <div>
+        <p class="etiqueta">Últimos movimientos</p>
+        <ul id="fMovs" class="divide-y text-sm"></ul>
+      </div>
+    </div>
+
+    <!-- SOLO DUEÑO -->
+    <section id="admin" class="hidden tarjeta space-y-5">
+      <h2 class="font-extrabold">Administración (solo dueño)</h2>
+
+      <div>
+        <label class="etiqueta">Pesos necesarios para 1 punto</label>
+        <div class="flex gap-2"><input id="aPesos" class="campo" inputmode="numeric"><button id="aGuardarPesos" class="btn btn-azul">Guardar</button></div>
+      </div>
+
+      <div>
+        <p class="etiqueta">Premios</p>
+        <ul id="aPremios" class="space-y-2 mb-2 text-sm"></ul>
+        <div class="grid grid-cols-5 gap-2">
+          <input id="pNombre" class="campo col-span-3" placeholder="Premio (ej: 10% de descuento)">
+          <input id="pPuntos" class="campo col-span-1" inputmode="numeric" placeholder="Puntos">
+          <button id="pAgregar" class="btn btn-verde col-span-1">+</button>
+        </div>
+      </div>
+
+      <div>
+        <p class="etiqueta">Empleados</p>
+        <ul id="aStaff" class="space-y-1 mb-2 text-sm"></ul>
+        <div class="grid grid-cols-5 gap-2">
+          <input id="sUid" class="campo col-span-3 font-mono text-xs" placeholder="Código que te pasó el empleado">
+          <input id="sMail" class="campo col-span-2" placeholder="Su mail">
+        </div>
+        <button id="sAgregar" class="btn btn-verde w-full mt-2">Habilitar empleado</button>
+      </div>
+
+      <div>
+        <p class="etiqueta">Ajuste manual de puntos al cliente seleccionado</p>
+        <div class="grid grid-cols-5 gap-2">
+          <input id="jPuntos" class="campo col-span-1" inputmode="numeric" placeholder="+/-">
+          <input id="jNota" class="campo col-span-3" placeholder="Motivo">
+          <button id="jAplicar" class="btn btn-gris col-span-1">OK</button>
+        </div>
+      </div>
+    </section>
+  </section>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="comun.js"></script>
+<script>
+document.title = 'Mostrador - ' + PROGRAMA.nombre;
+$('titulo').textContent = PROGRAMA.nombre;
+
+const vistas = ['vConfig', 'vCarga', 'vAuth', 'vSinPermiso', 'vMain'];
+function ver(id) { vistas.forEach(v => $(v).classList.toggle('hidden', v !== id)); $('salir').classList.toggle('hidden', id === 'vAuth' || id === 'vCarga' || id === 'vConfig'); }
+
+let yo = null;          // { uid, email, rol }
+let pesosPorPunto = PESOS_POR_PUNTO_DEFECTO;
+let premios = [];       // todos (activos o no)
+let cliente = null;     // { uid, nombre, apellido, email, numero }
+let movs = [];
+let unsubs = [], unsubCliente = null;
+let ocupado = false;
+
+if (CONFIG_INCOMPLETA) { ver('vConfig'); }
+else {
+  auth.onAuthStateChanged(async (user) => {
+    unsubs.forEach(f => f()); unsubs = []; cerrarCliente();
+    if (!user) { yo = null; ver('vAuth'); return; }
+    ver('vCarga');
+    try {
+      const s = await db.collection('staff').doc(user.uid).get();
+      if (!s.exists) {
+        $('miUid').value = user.uid;
+        let hayDueno = true;
+        try { hayDueno = (await db.collection('config').doc('admin').get()).exists; } catch (e) {}
+        $('cajaDueno').classList.toggle('hidden', hayDueno);
+        ver('vSinPermiso'); return;
+      }
+      yo = { uid: user.uid, email: user.email, rol: s.data().rol };
+      iniciar();
+    } catch (e) { aviso(errorAuth(e), true); ver('vAuth'); }
+  });
+}
+
+function iniciar() {
+  ver('vMain');
+  $('admin').classList.toggle('hidden', yo.rol !== 'admin');
+  $('scan').focus();
+  unsubs.push(db.collection('config').doc('programa').onSnapshot((d) => {
+    pesosPorPunto = (d.exists && d.data().pesosPorPunto > 0) ? d.data().pesosPorPunto : PESOS_POR_PUNTO_DEFECTO;
+    $('aPesos').value = pesosPorPunto;
+    actualizarPrevia();
+  }));
+  unsubs.push(db.collection('premios').onSnapshot((s) => {
+    premios = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.puntos - b.puntos);
+    pintarPremios();
+  }));
+  if (yo.rol === 'admin') {
+    unsubs.push(db.collection('staff').onSnapshot((s) => {
+      $('aStaff').innerHTML = s.docs.map(d => {
+        const x = d.data();
+        return `<li class="flex justify-between items-center bg-slate-50 rounded-lg px-3 py-1.5"><span>${esc(x.email || d.id)} <span class="text-xs text-slate-500">(${esc(x.rol)})</span></span>` +
+          (d.id !== yo.uid ? `<button data-baja="${esc(d.id)}" class="text-red-600 text-xs font-bold">Quitar</button>` : '') + '</li>';
+      }).join('');
+    }));
+  }
+}
+
+function cerrarCliente() { if (unsubCliente) { unsubCliente(); unsubCliente = null; } cliente = null; movs = []; $('ficha').classList.add('hidden'); }
+
+// ----- Buscar tarjeta -----
+async function buscar() {
+  const num = $('scan').value.replace(/\D/g, '');
+  $('scan').value = '';
+  if (!num) return;
+  try {
+    const t = await db.collection('tarjetas').doc(num).get();
+    if (!t.exists) { aviso('No existe la tarjeta ' + num, true); $('scan').focus(); return; }
+    const uid = t.data().uid;
+    const c = await db.collection('clientes').doc(uid).get();
+    if (!c.exists) { aviso('La tarjeta no tiene cliente asociado.', true); return; }
+    cerrarCliente();
+    cliente = { uid, ...c.data() };
+    $('fNombre').textContent = cliente.nombre + ' ' + cliente.apellido;
+    $('fMail').textContent = cliente.email;
+    $('fNum').textContent = 'Tarjeta ' + numTarjeta(cliente.numero);
+    $('ficha').classList.remove('hidden');
+    $('monto').value = ''; actualizarPrevia();
+    unsubCliente = db.collection('movimientos').where('uid', '==', uid).onSnapshot((s) => {
+      movs = ordenarMovs(s.docs.map(d => ({ id: d.id, ...d.data() })));
+      pintarMovs();
+    }, (e) => aviso(errorAuth(e), true));
+    $('monto').focus();
+  } catch (e) { aviso(errorAuth(e), true); }
+}
+$('scan').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); buscar(); } });
+$('buscar').onclick = buscar;
+
+function pintarMovs() {
+  const total = totalPuntos(movs);
+  $('fPuntos').textContent = fmt(total);
+  const anuladas = new Set(movs.filter(m => m.tipo === 'anulacion' && m.anula).map(m => m.anula));
+  $('fMovs').innerHTML = movs.slice(0, 15).map(m => {
+    const puedeAnular = m.tipo !== 'anulacion' && m.tipo !== 'ajuste' && !anuladas.has(m.id);
+    return `<li class="py-2 flex justify-between items-center gap-2"><div><p class="font-semibold ${anuladas.has(m.id) ? 'line-through text-slate-400' : ''}">${esc(describir(m))}</p>` +
+      `<p class="text-xs text-slate-500">${esc(fmtFecha(m.fecha))} · ${esc(m.empleado || '')}</p></div>` +
+      `<div class="text-right"><p class="font-extrabold ${m.puntos < 0 ? 'text-red-600' : 'text-emerald-600'}">${m.puntos > 0 ? '+' : ''}${fmt(m.puntos)}</p>` +
+      (puedeAnular ? `<button data-anular="${esc(m.id)}" class="text-xs text-red-600 underline">Anular</button>` : '') + '</div></li>';
+  }).join('') || '<li class="py-2 text-slate-500">Sin movimientos.</li>';
+  pintarPremios();
+}
+
+function pintarPremios() {
+  const total = totalPuntos(movs);
+  $('fPremios').innerHTML = premios.filter(p => p.activo !== false).map(p =>
+    `<li class="flex justify-between items-center gap-2 bg-slate-50 rounded-xl px-3 py-2"><span><b>${esc(p.nombre)}</b> <span class="text-xs text-slate-500">${fmt(p.puntos)} pts</span></span>` +
+    `<button data-canje="${esc(p.id)}" class="btn btn-azul !py-1.5 text-sm" ${(!cliente || total < p.puntos) ? 'disabled' : ''}>Canjear</button></li>`
+  ).join('') || '<li class="text-sm text-slate-500">Aún no hay premios cargados.</li>';
+  $('aPremios').innerHTML = premios.map(p =>
+    `<li class="flex justify-between items-center bg-slate-50 rounded-lg px-3 py-1.5"><span class="${p.activo === false ? 'line-through text-slate-400' : ''}">${esc(p.nombre)} · ${fmt(p.puntos)} pts</span>` +
+    `<span><button data-toggle="${esc(p.id)}" class="text-xs text-blue-700 underline mr-2">${p.activo === false ? 'Activar' : 'Pausar'}</button><button data-borrarp="${esc(p.id)}" class="text-xs text-red-600 underline">Borrar</button></span></li>`
+  ).join('');
+}
+
+// ----- Sumar puntos -----
+function actualizarPrevia() {
+  const m = parseMonto($('monto').value);
+  $('previa').textContent = (m > 0) ? `${fmt(Math.floor(m / pesosPorPunto))} puntos (1 punto cada $${fmt(pesosPorPunto)})` : '';
+}
+$('monto').addEventListener('input', actualizarPrevia);
+$('monto').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); sumar(); } });
+$('sumar').onclick = sumar;
+
+async function agregarMov(datos) {
+  if (ocupado) return false;
+  ocupado = true;
+  try {
+    await db.collection('movimientos').add({ uid: cliente.uid, empleado: yo.email, fecha: ts(), ...datos });
+    return true;
+  } catch (e) { aviso(errorAuth(e), true); return false; }
+  finally { ocupado = false; }
+}
+
+async function sumar() {
+  if (!cliente) return;
+  const monto = parseMonto($('monto').value);
+  if (!(monto > 0)) { aviso('Escribí un monto válido.', true); return; }
+  const puntos = Math.floor(monto / pesosPorPunto);
+  if (puntos < 1) { aviso('Con ese monto no alcanza para 1 punto.', true); return; }
+  if (monto > 5000000 && !confirm('El monto es muy alto: $' + fmt(monto) + '. ¿Es correcto?')) return;
+  if (await agregarMov({ tipo: 'compra', monto: Math.round(monto * 100) / 100, puntos })) {
+    aviso('Se sumaron ' + fmt(puntos) + ' puntos.');
+    $('monto').value = ''; actualizarPrevia();
+    cerrarYEsperar();
+  }
+}
+
+function cerrarYEsperar() { setTimeout(() => { $('scan').focus(); }, 50); }
+
+// ----- Acciones de las listas -----
+document.addEventListener('click', async (e) => {
+  const t = e.target.closest('button'); if (!t) return;
+  const d = t.dataset;
+  try {
+    if (d.canje) {
+      const p = premios.find(x => x.id === d.canje);
+      if (!p || !cliente) return;
+      if (totalPuntos(movs) < p.puntos) { aviso('No le alcanzan los puntos.', true); return; }
+      if (!confirm('¿Canjear "' + p.nombre + '" por ' + p.puntos + ' puntos?')) return;
+      if (await agregarMov({ tipo: 'canje', premio: p.nombre, puntos: -p.puntos })) aviso('Canje registrado.');
+    } else if (d.anular) {
+      const m = movs.find(x => x.id === d.anular);
+      if (!m || !confirm('¿Anular este movimiento (' + describir(m) + ')?')) return;
+      if (movs.some(x => x.tipo === 'anulacion' && x.anula === m.id)) { aviso('Ya estaba anulado.', true); return; }
+      if (await agregarMov({ tipo: 'anulacion', anula: m.id, puntos: -m.puntos })) aviso('Movimiento anulado.');
+    } else if (d.toggle) {
+      const p = premios.find(x => x.id === d.toggle);
+      await db.collection('premios').doc(d.toggle).update({ activo: p.activo === false });
+    } else if (d.borrarp) {
+      if (confirm('¿Borrar este premio?')) await db.collection('premios').doc(d.borrarp).delete();
+    } else if (d.baja) {
+      if (confirm('¿Quitar el acceso a este empleado?')) await db.collection('staff').doc(d.baja).delete();
+    }
+  } catch (err) { aviso(errorAuth(err), true); }
+});
+
+// ----- Administración -----
+$('aGuardarPesos').onclick = async () => {
+  const n = parseMonto($('aPesos').value);
+  if (!(n > 0)) { aviso('Número inválido.', true); return; }
+  try { await db.collection('config').doc('programa').set({ pesosPorPunto: n }); aviso('Guardado.'); } catch (e) { aviso(errorAuth(e), true); }
+};
+$('pAgregar').onclick = async () => {
+  const nombre = $('pNombre').value.trim(), pts = parseInt($('pPuntos').value, 10);
+  if (!nombre || !(pts > 0)) { aviso('Completá nombre y puntos.', true); return; }
+  try { await db.collection('premios').add({ nombre, puntos: pts, activo: true }); $('pNombre').value = ''; $('pPuntos').value = ''; } catch (e) { aviso(errorAuth(e), true); }
+};
+$('sAgregar').onclick = async () => {
+  const uid = $('sUid').value.trim(), email = $('sMail').value.trim();
+  if (!uid || !email) { aviso('Completá código y mail.', true); return; }
+  try { await db.collection('staff').doc(uid).set({ rol: 'empleado', email }); $('sUid').value = ''; $('sMail').value = ''; aviso('Empleado habilitado.'); } catch (e) { aviso(errorAuth(e), true); }
+};
+$('jAplicar').onclick = async () => {
+  if (!cliente) { aviso('Primero buscá un cliente.', true); return; }
+  const p = parseInt($('jPuntos').value, 10), nota = $('jNota').value.trim();
+  if (!p || !nota) { aviso('Poné puntos (+ o -) y el motivo.', true); return; }
+  if (await agregarMov({ tipo: 'ajuste', puntos: p, nota })) { $('jPuntos').value = ''; $('jNota').value = ''; aviso('Ajuste aplicado.'); }
+};
+
+// ----- Acceso -----
+$('soyDueno').onclick = async () => {
+  const u = auth.currentUser;
+  try {
+    const b = db.batch();
+    b.set(db.collection('config').doc('admin'), { uid: u.uid, creado: ts() });
+    b.set(db.collection('staff').doc(u.uid), { rol: 'admin', email: u.email });
+    await b.commit();
+    location.reload();
+  } catch (e) { aviso(errorAuth(e), true); }
+};
+$('fIng').onsubmit = async (e) => {
+  e.preventDefault();
+  try { await auth.signInWithEmailAndPassword($('iEmail').value.trim(), $('iPass').value); } catch (err) { aviso(errorAuth(err), true); }
+};
+$('fCrear').onsubmit = async (e) => {
+  e.preventDefault();
+  try { await auth.createUserWithEmailAndPassword($('cEmail').value.trim(), $('cPass').value); } catch (err) { aviso(errorAuth(err), true); }
+};
+$('verCrear').onclick = () => { $('fIng').classList.add('hidden'); $('fCrear').classList.remove('hidden'); };
+$('volver').onclick = () => { $('fCrear').classList.add('hidden'); $('fIng').classList.remove('hidden'); };
+$('salir').onclick = () => auth.signOut();
+</script>
+</body>
+</html>
