@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Club Triskel</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<link rel="icon" href="logo.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="estilos.css">
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+<div id="toast" class="hidden"></div>
+
+<main class="max-w-md mx-auto p-4 pb-16">
+  <header class="text-center py-4">
+    <img src="logo.png" alt="" class="h-14 mx-auto mb-2" onerror="this.style.display='none'">
+    <h1 class="text-2xl font-extrabold text-blue-700" id="titulo">Club Triskel</h1>
+    <p class="text-sm text-slate-500">Sumá puntos con tus compras y canjealos por premios</p>
+  </header>
+
+  <div id="vConfig" class="hidden tarjeta text-center text-sm">
+    <p class="font-bold mb-1">Falta completar la configuración</p>
+    <p>Abrí el archivo <b>config.js</b> y pegá los datos de Firebase.</p>
+  </div>
+
+  <div id="vCarga" class="text-center text-slate-500 py-10">Cargando…</div>
+
+  <!-- INGRESAR / REGISTRARSE -->
+  <section id="vAuth" class="hidden tarjeta">
+    <div class="flex mb-4 bg-slate-100 rounded-xl p-1">
+      <button id="tabIng" class="flex-1 py-2 rounded-lg font-bold text-sm">Ingresar</button>
+      <button id="tabReg" class="flex-1 py-2 rounded-lg font-bold text-sm">Quiero mi tarjeta</button>
+    </div>
+    <form id="fIng" class="space-y-3">
+      <div><label class="etiqueta">Mail</label><input id="iEmail" type="email" class="campo" autocomplete="email" required></div>
+      <div><label class="etiqueta">Contraseña</label><input id="iPass" type="password" class="campo" autocomplete="current-password" required></div>
+      <button class="btn btn-azul w-full" type="submit">Ingresar</button>
+      <button type="button" id="olvide" class="w-full text-sm text-blue-700 underline">Olvidé mi contraseña</button>
+    </form>
+    <form id="fReg" class="space-y-3 hidden">
+      <div class="grid grid-cols-2 gap-2">
+        <div><label class="etiqueta">Nombre</label><input id="rNombre" class="campo" autocomplete="given-name" maxlength="50" required></div>
+        <div><label class="etiqueta">Apellido</label><input id="rApellido" class="campo" autocomplete="family-name" maxlength="50" required></div>
+      </div>
+      <div><label class="etiqueta">Mail</label><input id="rEmail" type="email" class="campo" autocomplete="email" required></div>
+      <div><label class="etiqueta">Elegí una contraseña (mín. 6)</label><input id="rPass" type="password" class="campo" autocomplete="new-password" minlength="6" required></div>
+      <label class="flex gap-2 text-xs text-slate-600 items-start">
+        <input id="rTerm" type="checkbox" class="mt-0.5" required>
+        <span>Acepto que <span id="rTitular"></span> guarde mi nombre, apellido, mail y mis compras para administrar mis puntos. <a href="#" id="verTerm" class="text-blue-700 underline">Ver detalle</a></span>
+      </label>
+      <div id="detalleTerm" class="hidden text-xs text-slate-600 bg-slate-50 rounded-lg p-3 space-y-1">
+        <p>Guardamos solo tu nombre, apellido, mail, el monto de tus compras y tus puntos. Los usamos únicamente para el programa de puntos.</p>
+        <p>No los vendemos ni los cedemos a terceros. Podés pedir ver, corregir o borrar tus datos escribiendo a <b id="rContacto"></b> (Ley 25.326 de Protección de Datos Personales).</p>
+      </div>
+      <button class="btn btn-verde w-full" type="submit">Crear mi tarjeta</button>
+    </form>
+  </section>
+
+  <!-- COMPLETAR PERFIL (si se cortó el registro) -->
+  <section id="vPerfil" class="hidden tarjeta space-y-3">
+    <p class="font-bold">Falta un último paso</p>
+    <div class="grid grid-cols-2 gap-2">
+      <div><label class="etiqueta">Nombre</label><input id="pNombre" class="campo" maxlength="50"></div>
+      <div><label class="etiqueta">Apellido</label><input id="pApellido" class="campo" maxlength="50"></div>
+    </div>
+    <button id="pGuardar" class="btn btn-verde w-full">Crear mi tarjeta</button>
+    <button id="pSalir" class="w-full text-sm text-slate-500 underline">Salir</button>
+  </section>
+
+  <!-- PANTALLA PRINCIPAL -->
+  <section id="vMain" class="hidden space-y-4">
+    <div class="rounded-3xl bg-gradient-to-br from-blue-600 to-blue-800 text-white p-5 shadow-lg">
+      <div class="flex justify-between items-start">
+        <div>
+          <p class="text-xs opacity-80">Hola,</p>
+          <p class="text-xl font-extrabold" id="mNombre"></p>
+        </div>
+        <div class="text-right">
+          <p class="text-xs opacity-80">Mis puntos</p>
+          <p class="text-4xl font-extrabold leading-none" id="mPuntos">0</p>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl mt-4 p-3 text-center">
+        <svg id="barcode" class="mx-auto max-w-full"></svg>
+        <p class="text-slate-700 font-mono tracking-widest text-sm" id="mNumero"></p>
+      </div>
+      <p class="text-xs opacity-80 text-center mt-2">Mostrá este código en caja antes de pagar</p>
+    </div>
+
+    <div class="tarjeta">
+      <h2 class="font-extrabold mb-2">Premios</h2>
+      <ul id="mPremios" class="space-y-2 text-sm"></ul>
+    </div>
+
+    <div class="tarjeta">
+      <h2 class="font-extrabold mb-2">Mis movimientos</h2>
+      <ul id="mMovs" class="divide-y text-sm"></ul>
+    </div>
+
+    <button id="salir" class="btn btn-gris w-full">Cerrar sesión</button>
+  </section>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="config.js"></script>
+<script src="comun.js"></script>
+<script>
+document.title = PROGRAMA.nombre;
+$('titulo').textContent = PROGRAMA.nombre;
+$('rTitular').textContent = PROGRAMA.titular;
+$('rContacto').textContent = PROGRAMA.contacto;
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+const vistas = ['vConfig', 'vCarga', 'vAuth', 'vPerfil', 'vMain'];
+function ver(id) { vistas.forEach(v => $(v).classList.toggle('hidden', v !== id)); }
+
+function pestaña(reg) {
+  $('fIng').classList.toggle('hidden', reg);
+  $('fReg').classList.toggle('hidden', !reg);
+  $('tabIng').className = 'flex-1 py-2 rounded-lg font-bold text-sm ' + (reg ? 'text-slate-500' : 'bg-white shadow');
+  $('tabReg').className = 'flex-1 py-2 rounded-lg font-bold text-sm ' + (reg ? 'bg-white shadow' : 'text-slate-500');
+}
+$('tabIng').onclick = () => pestaña(false);
+$('tabReg').onclick = () => pestaña(true);
+$('verTerm').onclick = (e) => { e.preventDefault(); $('detalleTerm').classList.toggle('hidden'); };
+pestaña(false);
+
+let unsubs = [];
+let registrando = false;
+function limpiar() { unsubs.forEach(f => f()); unsubs = []; }
+
+// Crea el perfil y reserva un número de tarjeta que nadie más tenga.
+async function crearPerfil(user, nombre, apellido) {
+  let ultimoError = null;
+  for (let i = 0; i < 6; i++) {
+    const numero = String(Math.floor(1e7 + Math.random() * 9e7));
+    const b = db.batch();
+    b.set(db.collection('tarjetas').doc(numero), { uid: user.uid });
+    b.set(db.collection('clientes').doc(user.uid), {
+      nombre: nombre.trim(), apellido: apellido.trim(), email: user.email,
+      numero, creado: ts(), terminos: ts()
+    });
+    try { await b.commit(); return; } catch (e) { ultimoError = e; if (e.code !== 'permission-denied') break; }
+  }
+  throw ultimoError;
+}
+
+if (CONFIG_INCOMPLETA) {
+  ver('vConfig');
+} else {
+  auth.onAuthStateChanged((user) => {
+    limpiar();
+    if (!user) { ver('vAuth'); return; }
+    if (registrando) return; // el registro termina de armar el perfil y recién ahí se muestra
+    escucharCliente(user);
+  });
+}
+
+function escucharCliente(user) {
+  ver('vCarga');
+  unsubs.push(db.collection('clientes').doc(user.uid).onSnapshot((doc) => {
+    if (!doc.exists) { ver('vPerfil'); return; }
+    pintarCliente(doc.data());
+    ver('vMain');
+  }, (e) => aviso(errorAuth(e), true)));
+  unsubs.push(db.collection('movimientos').where('uid', '==', user.uid).onSnapshot((snap) => {
+    const movs = ordenarMovs(snap.docs.map(d => d.data()));
+    $('mPuntos').textContent = fmt(totalPuntos(movs));
+    $('mMovs').innerHTML = movs.length ? movs.map(m =>
+      `<li class="py-2 flex justify-between gap-3"><div><p class="font-semibold">${esc(describir(m))}</p><p class="text-xs text-slate-500">${esc(fmtFecha(m.fecha))}</p></div>` +
+      `<p class="font-extrabold ${m.puntos < 0 ? 'text-red-600' : 'text-emerald-600'}">${m.puntos > 0 ? '+' : ''}${fmt(m.puntos)}</p></li>`
+    ).join('') : '<li class="py-3 text-slate-500">Todavía no tenés movimientos.</li>';
+    puntosActuales = totalPuntos(movs);
+    pintarPremios();
+  }, (e) => aviso(errorAuth(e), true)));
+  unsubs.push(db.collection('premios').onSnapshot((snap) => {
+    premios = snap.docs.map(d => d.data()).filter(p => p.activo !== false).sort((a, b) => a.puntos - b.puntos);
+    pintarPremios();
+  }, () => {}));
+}
+
+let premios = [], puntosActuales = 0;
+function pintarPremios() {
+  $('mPremios').innerHTML = premios.length ? premios.map(p => {
+    const falta = p.puntos - puntosActuales;
+    return `<li class="flex justify-between items-center gap-2 bg-slate-50 rounded-xl px-3 py-2"><span class="font-semibold">${esc(p.nombre)}</span>` +
+      `<span class="text-right text-xs ${falta <= 0 ? 'text-emerald-600 font-bold' : 'text-slate-500'}">${fmt(p.puntos)} pts<br>${falta <= 0 ? '¡Ya lo podés canjear!' : 'Te faltan ' + fmt(falta)}</span></li>`;
+  }).join('') : '<li class="text-slate-500">Pronto vas a ver los premios acá.</li>';
+}
+
+function pintarCliente(c) {
+  $('mNombre').textContent = c.nombre + ' ' + c.apellido;
+  $('mNumero').textContent = numTarjeta(c.numero);
+  try {
+    JsBarcode('#barcode', c.numero, { format: 'CODE128', width: 2.4, height: 70, displayValue: false, margin: 4 });
+  } catch (e) {}
+}
+
+$('fIng').onsubmit = async (e) => {
+  e.preventDefault();
+  try { await auth.signInWithEmailAndPassword($('iEmail').value.trim(), $('iPass').value); }
+  catch (err) { aviso(errorAuth(err), true); }
+};
+
+$('fReg').onsubmit = async (e) => {
+  e.preventDefault();
+  const btn = e.submitter; if (btn) btn.disabled = true;
+  registrando = true;
+  try {
+    const cred = await auth.createUserWithEmailAndPassword($('rEmail').value.trim(), $('rPass').value);
+    await crearPerfil(cred.user, $('rNombre').value, $('rApellido').value);
+    registrando = false;
+    limpiar();
+    escucharCliente(cred.user);
+    aviso('¡Listo! Ya tenés tu tarjeta.');
+  } catch (err) {
+    registrando = false;
+    if (auth.currentUser) escucharCliente(auth.currentUser);
+    aviso(errorAuth(err), true);
+  }
+  if (btn) btn.disabled = false;
+};
+
+$('pGuardar').onclick = async () => {
+  const n = $('pNombre').value.trim(), a = $('pApellido').value.trim();
+  if (!n || !a) { aviso('Completá nombre y apellido.', true); return; }
+  try { await crearPerfil(auth.currentUser, n, a); } catch (err) { aviso(errorAuth(err), true); }
+};
+
+$('olvide').onclick = async () => {
+  const m = $('iEmail').value.trim();
+  if (!m) { aviso('Escribí tu mail arriba y volvé a tocar este botón.', true); return; }
+  try { await auth.sendPasswordResetEmail(m); aviso('Te enviamos un mail para crear una contraseña nueva.'); }
+  catch (err) { aviso(errorAuth(err), true); }
+};
+
+$('salir').onclick = () => auth.signOut();
+$('pSalir').onclick = () => auth.signOut();
+</script>
+</body>
+</html>
