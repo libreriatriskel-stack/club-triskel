@@ -103,8 +103,32 @@
         '<td class="pr-2 ' + (c.anuladas.has(m.id) ? 'line-through text-slate-400' : '') + '">' + esc(describir(m)) + (c.anuladas.has(m.id) ? ' (anulado)' : '') + '</td>' +
         '<td class="pr-2 text-right font-bold ' + (m.puntos < 0 ? 'text-red-600' : 'text-emerald-600') + '">' + (m.puntos > 0 ? '+' : '') + fmt(m.puntos) + '</td>' +
         '<td class="text-xs">' + esc(m.empleado || '') + '</td></tr>').join('') || '<tr><td colspan="4" class="py-2 text-slate-500">Sin movimientos todavía.</td></tr>') +
-      '</tbody></table></div>';
+      '</tbody></table></div>' +
+      '<div class="mt-3 pt-3 border-t"><button id="cvEliminar" data-uid="' + esc(uid) + '" class="btn btn-rojo text-sm">Eliminar este cliente</button>' +
+      '<p class="text-xs text-slate-500 mt-1">Borra su tarjeta y todo su historial. No se puede deshacer.</p></div>';
     $c('cvDetalle').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  async function eliminar(uid) {
+    const c = lista.find(x => x.uid === uid); if (!c) return;
+    const quien = c.nombre + ' ' + c.apellido + ' (' + c.email + ')';
+    if (!confirm('¿Eliminar a ' + quien + '? Se borran su tarjeta y todo su historial de puntos. No se puede deshacer.')) return;
+    if (!confirm('Última confirmación: ¿borrar definitivamente a ' + quien + '?')) return;
+    try {
+      const refs = (porUid[uid] || []).map(m => db.collection('movimientos').doc(m.id));
+      refs.push(db.collection('tarjetas').doc(String(c.numero)));
+      refs.push(db.collection('clientes').doc(uid));
+      for (let i = 0; i < refs.length; i += 400) {
+        const b = db.batch();
+        refs.slice(i, i + 400).forEach(r => b.delete(r));
+        await b.commit();
+      }
+      lista = lista.filter(x => x.uid !== uid);
+      delete porUid[uid];
+      $c('cvDetalle').classList.add('hidden');
+      pintar();
+      aviso('Cliente eliminado.');
+    } catch (e) { aviso(errorAuth(e), true); }
   }
 
   function csv() {
@@ -126,5 +150,6 @@
     const fila = e.target.closest('tr[data-cv]');
     if (fila) detalle(fila.dataset.cv);
     if (e.target.id === 'cvCerrar') $c('cvDetalle').classList.add('hidden');
+    if (e.target.id === 'cvEliminar') eliminar(e.target.dataset.uid);
   });
 })();
