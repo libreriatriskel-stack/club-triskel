@@ -91,7 +91,7 @@
 
     <!-- SOLO DUEÑO -->
     <section id="admin" class="hidden tarjeta space-y-5">
-      <h2 class="font-extrabold">Administración (solo dueño)</h2>
+      <h2 class="font-extrabold">Administración (solo dueño)</h2><div id="panelClientes"></div>
 
       <div>
         <label class="etiqueta">Pesos necesarios para 1 punto</label>
@@ -359,5 +359,5 @@ $('verCrear').onclick = () => { $('fIng').classList.add('hidden'); $('fCrear').c
 $('volver').onclick = () => { $('fCrear').classList.add('hidden'); $('fIng').classList.remove('hidden'); };
 $('salir').onclick = () => auth.signOut();
 </script>
-</body>
+<script src="clientes.js"></script></body>
 </html>
