@@ -1,0 +1,15 @@
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.campo { width: 100%; border: 1px solid #cbd5e1; border-radius: .75rem; padding: .75rem 1rem; font-size: 1rem; background: #fff; }
+.campo:focus { outline: 2px solid #3b82f6; border-color: transparent; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; font-weight: 700; border-radius: .75rem; padding: .75rem 1.25rem; transition: background .15s; cursor: pointer; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-azul { background: #2563eb; color: #fff; }
+.btn-azul:hover:not(:disabled) { background: #1d4ed8; }
+.btn-verde { background: #059669; color: #fff; }
+.btn-verde:hover:not(:disabled) { background: #047857; }
+.btn-gris { background: #e2e8f0; color: #334155; }
+.btn-gris:hover:not(:disabled) { background: #cbd5e1; }
+.btn-rojo { background: #fee2e2; color: #b91c1c; }
+.btn-rojo:hover:not(:disabled) { background: #fecaca; }
+.tarjeta { background: #fff; border-radius: 1.5rem; box-shadow: 0 1px 3px rgba(15,23,42,.12); padding: 1.5rem; }
+.etiqueta { display: block; font-size: .8rem; font-weight: 700; color: #475569; margin-bottom: .25rem; }
