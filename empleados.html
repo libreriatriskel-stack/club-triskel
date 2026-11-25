@@ -102,10 +102,14 @@
         <p class="etiqueta">Premios</p>
         <ul id="aPremios" class="space-y-2 mb-2 text-sm"></ul>
         <div class="grid grid-cols-5 gap-2">
-          <input id="pNombre" class="campo col-span-3" placeholder="Premio (ej: 10% de descuento)">
-          <input id="pPuntos" class="campo col-span-1" inputmode="numeric" placeholder="Puntos">
-          <button id="pAgregar" class="btn btn-verde col-span-1">+</button>
+          <input id="pNombre" class="campo col-span-3" placeholder="Premio (ej: Marcador Olami acrílico)">
+          <input id="pPuntos" class="campo col-span-2" inputmode="numeric" placeholder="Puntos">
+          <label class="col-span-5 text-xs text-slate-500">Foto del premio (opcional)
+            <input id="pFoto" type="file" accept="image/*" class="block w-full text-sm mt-1">
+          </label>
+          <button id="pAgregar" class="btn btn-verde col-span-5">Agregar premio</button>
         </div>
+        <input id="pFotoCambiar" type="file" accept="image/*" class="hidden">
       </div>
 
       <div>
@@ -242,12 +246,12 @@ function pintarMovs() {
 function pintarPremios() {
   const total = totalPuntos(movs);
   $('fPremios').innerHTML = premios.filter(p => p.activo !== false).map(p =>
-    `<li class="flex justify-between items-center gap-2 bg-slate-50 rounded-xl px-3 py-2"><span><b>${esc(p.nombre)}</b> <span class="text-xs text-slate-500">${fmt(p.puntos)} pts</span></span>` +
+    `<li class="flex justify-between items-center gap-2 bg-slate-50 rounded-xl px-3 py-2"><span class="flex items-center gap-2">${miniatura(p, 'w-10 h-10')}<span><b>${esc(p.nombre)}</b> <span class="text-xs text-slate-500">${fmt(p.puntos)} pts</span></span></span>` +
     `<button data-canje="${esc(p.id)}" class="btn btn-azul !py-1.5 text-sm" ${(!cliente || total < p.puntos) ? 'disabled' : ''}>Canjear</button></li>`
   ).join('') || '<li class="text-sm text-slate-500">Aún no hay premios cargados.</li>';
   $('aPremios').innerHTML = premios.map(p =>
-    `<li class="flex justify-between items-center bg-slate-50 rounded-lg px-3 py-1.5"><span class="${p.activo === false ? 'line-through text-slate-400' : ''}">${esc(p.nombre)} · ${fmt(p.puntos)} pts</span>` +
-    `<span><button data-toggle="${esc(p.id)}" class="text-xs text-blue-700 underline mr-2">${p.activo === false ? 'Activar' : 'Pausar'}</button><button data-borrarp="${esc(p.id)}" class="text-xs text-red-600 underline">Borrar</button></span></li>`
+    `<li class="flex justify-between items-center bg-slate-50 rounded-lg px-3 py-1.5"><span class="flex items-center gap-2 ${p.activo === false ? 'line-through text-slate-400' : ''}">${miniatura(p, 'w-10 h-10')}${esc(p.nombre)} · ${fmt(p.puntos)} pts</span>` +
+    `<span class="whitespace-nowrap"><button data-foto="${esc(p.id)}" class="text-xs text-blue-700 underline mr-2">${p.imagen ? 'Cambiar foto' : 'Poner foto'}</button><button data-toggle="${esc(p.id)}" class="text-xs text-blue-700 underline mr-2">${p.activo === false ? 'Activar' : 'Pausar'}</button><button data-borrarp="${esc(p.id)}" class="text-xs text-red-600 underline">Borrar</button></span></li>`
   ).join('');
 }
 
@@ -302,6 +306,8 @@ document.addEventListener('click', async (e) => {
       if (!m || !confirm('¿Anular este movimiento (' + describir(m) + ')?')) return;
       if (movs.some(x => x.tipo === 'anulacion' && x.anula === m.id)) { aviso('Ya estaba anulado.', true); return; }
       if (await agregarMov({ tipo: 'anulacion', anula: m.id, puntos: -m.puntos })) aviso('Movimiento anulado.');
+    } else if (d.foto) {
+      fotoPara = d.foto; $('pFotoCambiar').click();
     } else if (d.toggle) {
       const p = premios.find(x => x.id === d.toggle);
       await db.collection('premios').doc(d.toggle).update({ activo: p.activo === false });
@@ -319,10 +325,42 @@ $('aGuardarPesos').onclick = async () => {
   if (!(n > 0)) { aviso('Número inválido.', true); return; }
   try { await db.collection('config').doc('programa').set({ pesosPorPunto: n }); aviso('Guardado.'); } catch (e) { aviso(errorAuth(e), true); }
 };
+let fotoPara = null;
+$('pFotoCambiar').onchange = async (ev) => {
+  const f = ev.target.files[0]; ev.target.value = '';
+  if (!f || !fotoPara) return;
+  try { await db.collection('premios').doc(fotoPara).update({ imagen: await achicarFoto(f) }); aviso('Foto guardada.'); }
+  catch (err) { aviso(err.message === 'imagen' ? 'No se pudo leer esa foto.' : errorAuth(err), true); }
+};
+function miniatura(p, tam) {
+  return (p.imagen && String(p.imagen).startsWith('data:image/')) ? `<img src="${p.imagen}" alt="" class="${tam} rounded-lg object-cover shrink-0">` : '';
+}
+// Achica la foto (máx. 320 px, JPEG) para que pese poco y se guarde junto al premio.
+function achicarFoto(file) {
+  return new Promise((ok, mal) => {
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => {
+      const k = Math.min(1, 320 / Math.max(im.width, im.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+      x.drawImage(im, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); ok(c.toDataURL('image/jpeg', 0.75));
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); mal(new Error('imagen')); };
+    im.src = url;
+  });
+}
 $('pAgregar').onclick = async () => {
   const nombre = $('pNombre').value.trim(), pts = parseInt($('pPuntos').value, 10);
   if (!nombre || !(pts > 0)) { aviso('Completá nombre y puntos.', true); return; }
-  try { await db.collection('premios').add({ nombre, puntos: pts, activo: true }); $('pNombre').value = ''; $('pPuntos').value = ''; } catch (e) { aviso(errorAuth(e), true); }
+  try {
+    const datos = { nombre, puntos: pts, activo: true };
+    const f = $('pFoto').files[0];
+    if (f) datos.imagen = await achicarFoto(f);
+    await db.collection('premios').add(datos);
+    $('pNombre').value = ''; $('pPuntos').value = ''; $('pFoto').value = '';
+  } catch (e) { aviso(e.message === 'imagen' ? 'No se pudo leer esa foto.' : errorAuth(e), true); }
 };
 $('sAgregar').onclick = async () => {
   const uid = $('sUid').value.trim(), email = $('sMail').value.trim();
